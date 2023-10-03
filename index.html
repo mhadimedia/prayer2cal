@@ -1,18 +1,83 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Prayer2Cal: Get Prayer Times into Your Calendar</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Prayer Times to Calendar</title>
+    <style>
+        body {
+            animation: gradient 5s ease infinite;
+            background: linear-gradient(45deg, #a5c5dc, #6acdff);
+            background-size: 400% 400%;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+        }
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        form {
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            display: inline-block;
+            margin-top: 100px;
+        }
+        .form-section {
+            margin-bottom: 30px; /* Increased spacing */
+        }
+        input[type="submit"] {
+            background-color: #4CAF50;
+            color: white;
+            padding: 14px 20px;
+            margin-top: 20px; /* Added spacing */
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        /* Dark Mode */
+        body.dark-mode {
+            background: #333;
+            color: #fff;
+        }
+        /* Responsiveness */
+        @media (max-width: 600px) {
+            form {
+                padding: 15px;
+            }
+        }
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px;
+            border-radius: 4px;
+            z-index: 1000;
+        }
+        .timer-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background-color: #2E7D32;
+            animation: timerBar 5s linear forwards;
+        }
+        @keyframes timerBar {
+            from { width: 100%; }
+            to { width: 0; }
+        }
+    </style>
 </head>
 <body>
     <h1>Generate Prayer Times</h1>
     <form id="prayer-form">
         <label for="method">Calculation Method:</label>
         <select id="method" name="method">
-            <option value="ISNA">ISNA</option>
-            <option value="MWL">MWL</option>
-            <option value="UmmAlQura">Umm Al-Qura</option>
-            <option value="Egypt">Egyptian</option>
+            <option value="Jafari">Jafari</option>
         </select>
         <br>
         <label for="days">Days to Generate:</label>
@@ -30,8 +95,60 @@
         <input type="submit" value="Generate">
     </form>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="http://praytimes.org/code/v2/js/PrayTimes.js"></script>
-    <script src="https://nwcell.github.io/ics.js/ics.deps.min.js"></script>
-    <script src="app.js"></script>
+    <script>
+        navigator.geolocation.getCurrentPosition(function(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+
+            $("#prayer-form").submit(function(e) {
+                e.preventDefault();
+                let extraTimes = [];
+                $("input[name='extra']:checked").each(function() {
+                    extraTimes.push($(this).val());
+                });
+                $.ajax({
+                    url: '/generate_ical',
+                    method: 'POST',
+                    data: {
+                        method: $("#method").val(),
+                        days: $("#days").val(),
+                        extra: extraTimes,
+                        lat: lat,
+                        lng: lng
+                    },
+                    success: function(response) {
+                        const blob = new Blob([response], { type: 'text/calendar' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.style.display = 'none';
+                        a.href = url;
+                        a.download = 'prayer_times.ics';
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+
+                        // Notification logic
+                        showNotification();
+                    }
+                });
+            });
+        });
+
+        // New function to show the notification
+        function showNotification() {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.innerHTML = 'File downloaded successfully!';
+            document.body.appendChild(notification);
+
+            const timerBar = document.createElement('div');
+            timerBar.className = 'timer-bar';
+            notification.appendChild(timerBar);
+
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 5000);
+        }
+    </script>
 </body>
 </html>
