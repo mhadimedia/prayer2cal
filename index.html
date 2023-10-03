@@ -1,99 +1,154 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Prayer Times to Calendar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
-            animation: gradient 5s ease infinite;
-            background: linear-gradient(45deg, #a5c5dc, #6acdff);
-            background-size: 400% 400%;
-            min-height: 100vh;
-            font-family: Arial, sans-serif;
-            text-align: center;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
             margin: 0;
+            background: linear-gradient(135deg, #6ccdff, #00497a);
         }
-        @keyframes gradient {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
+
         form {
-            background-color: rgba(255, 255, 255, 0.8);
-            padding: 20px;
-            border-radius: 10px;
-            display: inline-block;
-            margin-top: 100px;
+            width: 350px;
+            background: #fff;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         }
+
+        h1 {
+            margin: 0;
+            color: #333;
+            font-weight: 700;
+            margin-bottom: 30px;
+            text-align: center;  /* Add this line to center the text */
+        }
+
         .form-section {
-            margin-bottom: 30px; /* Increased spacing */
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
+
+        label {
+            font-weight: 700;
+            flex: 1;
+        }
+
+        select, input[type="submit"] {
+            flex: 2;
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            font-size: 16px;
+        }
+
         input[type="submit"] {
-            background-color: #4CAF50;
-            color: white;
-            padding: 14px 20px;
-            margin-top: 20px; /* Added spacing */
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        /* Dark Mode */
-        body.dark-mode {
-            background: #333;
+            width: 100%;  /* Make the button full width */
+            margin: 0 auto;  /* Center it horizontally */
+            background-color: #00497a;
             color: #fff;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            padding: 10px 0;  /* Adjust vertical padding */
         }
-        /* Responsiveness */
-        @media (max-width: 600px) {
-            form {
-                padding: 15px;
-            }
+
+        input[type="submit"]:hover {
+            background-color: #00335f;
+        }
+
+        input[type="checkbox"] {
+            margin-right: 5px;
+        }
+
+        footer {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            color: #ddd;
         }
         .notification {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            background-color: #4CAF50;
-            color: white;
+            top: 10px;
+            right: 10px;
+            background-color: #00497a;
+            color: #fff;
             padding: 15px;
-            border-radius: 4px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             z-index: 1000;
+            transition: transform 0.3s ease, opacity 0.3s ease;
         }
+
         .timer-bar {
             position: absolute;
             bottom: 0;
             left: 0;
+            height: 3px;
+            background-color: #fff;
             width: 100%;
-            height: 5px;
-            background-color: #2E7D32;
-            animation: timerBar 5s linear forwards;
+            animation: timerBarAnimation 5s linear forwards;
         }
-        @keyframes timerBar {
-            from { width: 100%; }
-            to { width: 0; }
+
+        @keyframes timerBarAnimation {
+            from {
+                width: 100%;
+            }
+            to {
+                width: 0;
+            }
         }
     </style>
 </head>
+
 <body>
-    <h1>Generate Prayer Times</h1>
     <form id="prayer-form">
-        <label for="method">Calculation Method:</label>
-        <select id="method" name="method">
-            <option value="Jafari">Jafari</option>
-        </select>
-        <br>
-        <label for="days">Days to Generate:</label>
-        <select id="days" name="days">
-            <option value="1">1 Day</option>
-            <option value="30">1 Month</option>
-            <option value="365">1 Year</option>
-        </select>
-        <br>
-        <label for="extra">Include Extra Times:</label>
-        <input type="checkbox" id="sunrise" name="extra" value="Sunrise"> Sunrise
-        <input type="checkbox" id="sunset" name="extra" value="Sunset"> Sunset
-        <input type="checkbox" id="midnight" name="extra" value="Midnight"> Midnight
-        <br>
+        <h1>Prayer2Cal: Generate Prayer Times</h1>
+        <div class="form-section">
+            <label for="method">Method:</label>
+            <select id="method" name="method">
+                <option value="Jafari">Jafari</option>
+                <option value="MWL">MWL</option>
+                <option value="ISNA">ISNA</option>
+                <option value="Egypt">Egypt</option>
+                <option value="Makkah">Makkah</option>
+            </select>
+        </div>
+        <div class="form-section">
+            <label for="days">Days:</label>
+            <select id="days" name="days">
+                <option value="1">1 Day</option>
+                <option value="30">1 Month</option>
+                <option value="365">1 Year</option>
+            </select>
+        </div>
+        <div class="form-section">
+            <label>Extras:</label>
+            <div>
+                <input type="checkbox" id="sunrise" name="extra" value="Sunrise">
+                <label for="sunrise">Sunrise</label>
+                <input type="checkbox" id="sunset" name="extra" value="Sunset">
+                <label for="sunset">Sunset</label>
+                <input type="checkbox" id="midnight" name="extra" value="Midnight">
+                <label for="midnight">Midnight</label>
+            </div>
+        </div>
         <input type="submit" value="Generate">
     </form>
+    <footer>
+        Calculation code by praytimes.org
+    </footer>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         navigator.geolocation.getCurrentPosition(function(position) {

@@ -8,10 +8,23 @@ import geocoder
 import math
 import re
 import calendar
+import io
 
 class PrayTimes():
     timeNames = {'fajr': 'Fajr', 'dhuhr': 'Dhuhr', 'asr': 'Asr', 'maghrib': 'Maghrib', 'isha': 'Isha'}
-    methods = {'Jafari': {'name': 'Shia Ithna-Ashari, Leva Institute, Qum', 'params': {'fajr': 16, 'isha': 14, 'maghrib': 4, 'midnight': 'Jafari'}}}
+    methods = {
+        'Jafari': {'name': 'Shia Ithna-Ashari, Leva Institute, Qum', 'params': {'fajr': 16, 'isha': 14, 'maghrib': 4, 'midnight': 'Jafari'}},
+        'MWL': {'name': 'Muslim World League', 'params': {'fajr': 18, 'isha': 17}},
+        'ISNA': {'name': 'Islamic Society of North America (ISNA)', 'params': {'fajr': 15, 'isha': 15}},
+        'Egypt': {'name': 'Egyptian General Authority of Survey', 'params': {'fajr': 19.5, 'isha': 17.5}},
+        'Makkah': {'name': 'Umm al-Qura University, Makkah', 'params': {'fajr': 18.5, 'isha': '90 min'}},
+        'Karachi': {'name': 'University of Islamic Sciences, Karachi', 'params': {'fajr': 18, 'isha': 18}},
+        'Tehran': {'name': 'Institute of Geophysics, University of Tehran', 'params': {'fajr': 17.7, 'isha': 14, 'maghrib': 4.5, 'midnight': 'Jafari'}},
+        'Dubai': {'name': 'UAE General Authority of Islamic Affairs & Endowments', 'params': {'fajr': 18.2, 'isha': 18.2}},
+        'Kuwait': {'name': 'Kuwait Ministry of Awqaf and Islamic Affairs', 'params': {'fajr': 18, 'isha': 17.5}},
+        'Qatar': {'name': 'Qatar Ministry of Awqaf and Islamic Affairs', 'params': {'fajr': 18, 'isha': 18}},
+        'Singapore': {'name': 'Majlis Ugama Islam Singapura', 'params': {'fajr': 20, 'isha': 18}},
+    }
     defaultParams = {'maghrib': '0 min', 'midnight': 'Standard'}
     calcMethod = 'Jafari'
     settings = {"imsak": '10 min', "dhuhr": '0 min', "asr": 'Standard', "highLats": 'NightMiddle'}
@@ -97,6 +110,13 @@ class PrayTimes():
         A = math.floor(year / 100)
         B = 2 - A + math.floor(A / 4)
         return math.floor(365.25 * (year + 4716)) + math.floor(30.6001 * (month + 1)) + day + B - 1524.5
+    
+    def setMethod(self, method):
+        if method in self.methods:
+            self.calcMethod = method
+            params = self.methods[method]['params']
+            for name, value in params.items():
+                self.settings[name] = value
 
     def computePrayerTimes(self, times):
         times = self.dayPortion(times)
@@ -207,28 +227,43 @@ class PrayTimes():
     def arctan2(self, y, x):
         return self.radToDeg(math.atan2(y, x))
 
-    def create_ical(self, year, coords, timezone, extra=None, filename='prayer_times.ics', days=1):
+    def create_ical(self, year, coords, timezone, extra=None, filename='prayer_times.ics', days=1, method='Jafari'):
         cal = Calendar()
         cal.add('prodid', '-//Your App//example.com//')
         cal.add('version', '2.0')
 
-        tz = pytz.timezone(timezone)  # Use the provided timezone
+        tz = pytz.timezone(timezone)
         current_time = datetime.now(tz)
         is_dst = current_time.dst() != timedelta(0)
 
-        for day_offset in range(days):  # Loop through the number of days
+        for day_offset in range(days):
             current_date = datetime.today() + timedelta(days=day_offset)
             date_tuple = (current_date.year, current_date.month, current_date.day)
             times = self.getTimes(date_tuple, coords, timezone, is_dst)
+            
+            print("Times Dictionary:", times)  # Debugging
 
-            for prayer_name in ['Fajr', 'Dhuhr & Asr', 'Maghrib & Isha']:
+            if method == 'Jafari':
+                prayer_names = ['fajr', 'dhuhr & asr', 'maghrib & isha']
+            else:
+                prayer_names = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']
+
+            for prayer_name in prayer_names:
+                prayer_time = times.get(prayer_name.lower())
+                if prayer_time is None:
+                    print(f"Skipping {prayer_name} as it's not found in times dictionary.")
+                    continue  # Skip this iteration if the prayer time is not found
+
                 event = Event()
                 event.add('summary', prayer_name)
 
-                if prayer_name == 'Dhuhr & Asr':
-                    prayer_time = times['dhuhr']
-                elif prayer_name == 'Maghrib & Isha':
-                    prayer_time = times['maghrib']
+                if method == 'Jafari':
+                    if prayer_name == 'Dhuhr & Asr':
+                        prayer_time = times['dhuhr']
+                    elif prayer_name == 'Maghrib & Isha':
+                        prayer_time = times['maghrib']
+                    else:
+                        prayer_time = times[prayer_name.lower()]
                 else:
                     prayer_time = times[prayer_name.lower()]
 
@@ -240,11 +275,8 @@ class PrayTimes():
 
             # Conditionally add extra times
             if extra:
-                print("Extra times received:", extra)  # Debugging line
-                print("Times dictionary:", times)  # Debugging line
                 for extra_time in extra:
                     if extra_time.lower() in times:
-                        print("Adding extra time:", extra_time)  # Debugging line
                         event = Event()
                         event.add('summary', extra_time)
                         extra_time_value = times[extra_time.lower()]
@@ -254,14 +286,11 @@ class PrayTimes():
                         event.add('duration', timedelta(minutes=30))
                         cal.add_component(event)
 
-
-        # Save to a BytesIO object to avoid file system dependency
-        import io
         file_object = io.BytesIO()
         file_object.write(cal.to_ical())
         file_object.seek(0)
 
-        return file_object  # Return the BytesIO object
+        return file_object
 
 
 app = Flask(__name__)
@@ -272,24 +301,31 @@ def index():
 
 @app.route('/generate_ical', methods=['POST'])
 def generate_ical():
-    method = request.form['method']
-    days = int(request.form['days'])
-    extra = request.form.getlist('extra')
-    lat = float(request.form['lat'])
-    lng = float(request.form['lng'])
+    method = request.form['method']  # Get the selected method from the form
+    days = int(request.form['days'])  # Get the number of days from the form
+    extra = request.form.getlist('extra')  # Get any extra times selected
+    lat = float(request.form['lat'])  # Get latitude from the form
+    lng = float(request.form['lng'])  # Get longitude from the form
 
     tf = TimezoneFinder()
-    timezone_str = tf.timezone_at(lat=lat, lng=lng)
+    timezone_str = tf.timezone_at(lat=lat, lng=lng)  # Get the timezone string based on coordinates
 
-    year = datetime.today().year
-    coords = (lat, lng)
-    prayTimes = PrayTimes()
-    filename = f"{timezone_str.replace('/', '_')}_prayer_times.ics"
+    year = datetime.today().year  # Get the current year
+    coords = (lat, lng)  # Create a tuple for coordinates
 
-    print(f"Extra times selected: {extra}")
-    file_object = prayTimes.create_ical(year, coords, timezone_str, extra=extra, filename=filename, days=days)
+    prayTimes = PrayTimes()  # Create an instance of the PrayTimes class
+    prayTimes.setMethod(method)  # Set the calculation method based on user selection
 
+    filename = f"{timezone_str.replace('/', '_')}_prayer_times.ics"  # Generate a filename for the iCal file
+
+    print(f"Extra times selected: {extra}")  # Debugging line to print extra times
+
+    # Generate the iCal file
+    file_object = prayTimes.create_ical(year, coords, timezone_str, extra=extra, filename=filename, days=days, method=method)
+
+    # Send the iCal file as a response
     return send_file(file_object, as_attachment=True, download_name=filename, mimetype='text/calendar')
+
 
 if __name__ == '__main__':
     app.run(debug=True)
