@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Prayer Times to Calendar</title>
+    <style>
+        body {
+            animation: gradient 5s ease infinite;
+            background: linear-gradient(45deg, #ff9a9e, #fad0c4, #f6d365, #fda085);
+            background-size: 400% 400%;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        form {
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            display: inline-block;
+            margin-top: 100px;
+        }
+        .form-section {
+            margin-bottom: 20px;
+        }
+        input[type="submit"] {
+            background-color: #4CAF50;
+            color: white;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Generate Prayer Times</h1>
+    <form id="prayer-form">
+        <label for="method">Calculation Method:</label>
+        <select id="method" name="method">
+            <option value="Jafari">Jafari</option>
+        </select>
+        <br>
+        <label for="days">Days to Generate:</label>
+        <select id="days" name="days">
+            <option value="1">1 Day</option>
+            <option value="30">1 Month</option>
+            <option value="365">1 Year</option>
+        </select>
+        <br>
+        <label for="extra">Include Extra Times:</label>
+        <input type="checkbox" id="sunrise" name="extra" value="Sunrise"> Sunrise
+        <input type="checkbox" id="sunset" name="extra" value="Sunset"> Sunset
+        <input type="checkbox" id="midnight" name="extra" value="Midnight"> Midnight
+        <br>
+        <input type="submit" value="Generate">
+    </form>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        navigator.geolocation.getCurrentPosition(function(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+
+            $("#prayer-form").submit(function(e) {
+                e.preventDefault();
+                let formData = new FormData();
+                formData.append('method', $("#method").val());
+                formData.append('days', $("#days").val());
+                formData.append('lat', lat);
+                formData.append('lng', lng);
+                $("input[name='extra']:checked").each(function() {
+                    formData.append('extra', $(this).val());
+                });
+                $.ajax({
+                url: '/generate_ical',
+                method: 'POST',
+                data: formData,
+                processData: false,  // Important!
+                contentType: false,  // Important!
+                success: function(response) {
+                        const blob = new Blob([response], { type: 'text/calendar' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.style.display = 'none';
+                        a.href = url;
+                        a.download = 'prayer_times.ics';
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
